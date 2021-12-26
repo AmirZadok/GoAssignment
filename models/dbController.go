@@ -40,10 +40,6 @@ func GetAllhHosts() ([]Host, error) {
 		}
 		hosts = append(hosts, tempHost)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-
-	}
 
 	return hosts, nil
 }
@@ -63,9 +59,7 @@ func GetAllhContainers() ([]Container, error) {
 		}
 		containers = append(containers, tempContainer)
 	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
+
 	return containers, nil
 }
 
@@ -91,11 +85,13 @@ func insertContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	stmt, err := db.Prepare("INSERT INTO containers ( host_id , name , image_name) VALUES (?,?,?)")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprint(w, err)
+		return
 	}
 	_, err = stmt.Exec(partialContainer.Host_Id, uuid.New().String(), partialContainer.Image_Name)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprint(w, err)
+		return
 	}
 	printMessage(w, "the container added")
 
@@ -113,8 +109,8 @@ func getContainerByHostId(w http.ResponseWriter, r *http.Request) {
 	if !rows.Next() {
 		printMessage(w, "no such container")
 		return
-	}
-	for rows.Next() {
+	} else {
+
 		var tempContainer ContainerWithHostName
 		err := rows.Scan(&tempContainer.Id, &tempContainer.Host_Id, &tempContainer.Name, &tempContainer.Image_Name, &tempContainer.Host_Name)
 		if err != nil {
@@ -210,9 +206,9 @@ func getHostById(w http.ResponseWriter, r *http.Request) {
 func AllContainers(w http.ResponseWriter, r *http.Request) {
 	containers, err := GetAllhContainers()
 	if err != nil {
-		log.Fatal(err)
-		http.Error(w, http.StatusText(500), 500)
+		fmt.Fprint(w, err)
 		return
+
 	}
 
 	if len(containers) == 0 {
@@ -228,7 +224,8 @@ func AllContainers(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := PrettyStruct(containers)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprint(w, err)
+		return
 	}
 	fmt.Fprint(w, res)
 
@@ -237,9 +234,9 @@ func AllContainers(w http.ResponseWriter, r *http.Request) {
 func AllHosts(w http.ResponseWriter, r *http.Request) {
 	hosts, err := GetAllhHosts()
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		fmt.Fprint(w, err)
 		return
+
 	}
 
 	if len(hosts) == 0 {
@@ -256,7 +253,6 @@ func AllHosts(w http.ResponseWriter, r *http.Request) {
 	res, err := PrettyStruct(hosts)
 	if err != nil {
 		fmt.Fprint(w, err)
-		return
 	}
 	fmt.Fprint(w, res)
 }
